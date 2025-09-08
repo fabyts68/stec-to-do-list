@@ -61,15 +61,22 @@ const createTaskElement = (task) => {
         <button class="delete-btn" title="Excluir tarefa"><i class="fa-solid fa-trash-can"></i></button>
     `;
 
-    taskItem.querySelector('.checkbox').addEventListener('click', () => listeners.onToggleTask(task.id));
+    taskItem.querySelector('.checkbox').addEventListener('click', (e) => {
+        e.preventDefault();
+        listeners.onToggleTask(task.id)
+    });
     taskItem.querySelector('.delete-btn').addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
         listeners.onDeleteTask(task.id);
     });
     
     ['title', 'description', 'due_date'].forEach(field => {
         const element = taskItem.querySelector(`[data-field="${field}"]`);
-        element.addEventListener('click', () => listeners.onEditTask(task.id, element, field));
+        element.addEventListener('click', (e) => {
+            e.preventDefault();
+            listeners.onEditTask(task.id, element, field)
+        });
     });
 
     return taskItem;
