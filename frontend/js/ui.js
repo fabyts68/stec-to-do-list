@@ -26,7 +26,7 @@ const formatTimeAgo = (dateString) => {
 
 const createTaskElement = (task) => {
     const taskItem = document.createElement('div');
-    taskItem.dataset.id = task.id;
+    taskItem.dataset.id = task.id; 
     taskItem.className = 'task-item';
     if (task.status === 'concluída') {
         taskItem.classList.add('completed');
@@ -61,22 +61,15 @@ const createTaskElement = (task) => {
         <button class="delete-btn" title="Excluir tarefa"><i class="fa-solid fa-trash-can"></i></button>
     `;
 
-    taskItem.querySelector('.checkbox').addEventListener('click', (e) => {
-        e.preventDefault(); // Evita qualquer comportamento padrão
-        listeners.onToggleTask(task.id);
-    });
+    taskItem.querySelector('.checkbox').addEventListener('click', () => listeners.onToggleTask(task.id));
     taskItem.querySelector('.delete-btn').addEventListener('click', (e) => {
-        e.preventDefault(); // Evita qualquer comportamento padrão
         e.stopPropagation();
         listeners.onDeleteTask(task.id);
     });
     
     ['title', 'description', 'due_date'].forEach(field => {
         const element = taskItem.querySelector(`[data-field="${field}"]`);
-        element.addEventListener('click', (e) => {
-            e.preventDefault(); // Evita qualquer comportamento padrão
-            listeners.onEditTask(task.id, element, field)
-        });
+        element.addEventListener('click', () => listeners.onEditTask(task.id, element, field));
     });
 
     return taskItem;
@@ -113,7 +106,7 @@ export const removeTaskFromUI = (id) => {
     taskElement.classList.add('removing');
     setTimeout(() => {
       taskElement.remove();
-    }, 300); // Sincronizado com a animação de 0.3s do CSS
+    }, 500); 
   }
 };
 
@@ -130,7 +123,7 @@ export const clearAllTasksFromUI = (containerId) => {
 
     setTimeout(() => {
         container.innerHTML = `<div class="empty-state">Nenhuma tarefa aqui.</div>`;
-    }, 300); // Sincronizado com a animação de 0.3s do CSS
+    }, 500);
 };
 
 export const flashTask = (id) => {
@@ -187,42 +180,4 @@ export const showModal = (options) => {
 
 export const hideModal = () => {
     document.getElementById('delete-modal').classList.remove('visible');
-};
-
-// --- CORREÇÃO DO TEMPO DA MENSAGEM ---
-export const showToast = (message, type = 'success') => {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-    container.appendChild(toast);
-    // Tempo aumentado para 5 segundos (5000ms)
-    setTimeout(() => toast.remove(), 5000); 
-};
-
-export const showConfetti = () => {
-    const confettiContainer = document.body;
-    for (let i = 0; i < 100; i++) {
-        const confetti = document.createElement('div');
-        confetti.style.position = 'fixed';
-        confetti.style.left = `${Math.random() * 100}vw`;
-        confetti.style.top = `${Math.random() * -100}vh`;
-        confetti.style.width = `${Math.random() * 10 + 5}px`;
-        confetti.style.height = confetti.style.width;
-        confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
-        confetti.style.opacity = '1';
-        confetti.style.borderRadius = '50%';
-        confetti.style.transition = 'all 4s ease-out'; // Duração aumentada
-        confetti.style.zIndex = '9999';
-        confettiContainer.appendChild(confetti);
-
-        setTimeout(() => {
-            confetti.style.transform = `translateY(${window.innerHeight + 100}px) rotateZ(${Math.random() * 360}deg)`;
-            confetti.style.opacity = '0';
-        }, 50);
-
-        setTimeout(() => {
-            confetti.remove();
-        }, 4050); // Tempo de remoção ajustado
-    }
 };
