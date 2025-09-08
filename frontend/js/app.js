@@ -1,4 +1,5 @@
 import * as api from './api.js';
+// CORREÇÃO 1: Importar as novas funções de animação do ui.js
 import * as ui from './ui.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- CORREÇÃO 1: NAVEGAÇÃO INTELIGENTE PÓS-CRIAÇÃO ---
     const handleCreateTask = async (event) => {
         event.preventDefault();
         const titleInput = document.getElementById('new-task-title');
@@ -34,21 +34,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const due_date = selectedDate ? selectedDate.toISOString() : null;
 
         try {
-            // A API agora retorna a tarefa criada para não precisarmos recarregar
             const newTask = await api.createTask({ title, description, due_date });
             
             titleInput.value = '';
             descriptionInput.value = '';
             newTaskDatepicker.clear();
 
-            // Adiciona a nova tarefa ao estado local (muito mais rápido que refreshData)
             state.tasks.unshift(newTask);
             ui.updateDashboard(state.tasks);
             ui.updateAllViews(state.tasks);
             
             ui.showToast('Tarefa criada com sucesso!', 'success');
-            
-            // Leva o usuário para a tela onde a nova tarefa está
             ui.switchView('view-pending');
 
         } catch (error) {
@@ -59,46 +55,68 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleToggleTask = async (id) => {
         const task = state.tasks.find(t => t.id === id);
         if (!task) return;
-        const newStatus = task.status === 'pendente' ? 'concluída' 'pendente';
         const newStatus = task.status === 'pendente' ? 'concluída' : 'pendente';
         try {
             await api.updateTask(id, { status: newStatus });
             task.status = newStatus; 
+            
+            // Aqui a animação já funciona bem ao trocar de lista
             ui.updateAllViews(state.tasks);
             ui.updateDashboard(state.tasks);
 
             const message = newStatus === 'concluída' ? 'Tarefa concluída! 🎉' : 'Tarefa marcada como pendente.';
             ui.showToast(message, 'success');
+            
+            if (newStatus === 'concluída') {
+                ui.showConfetti();
+            }
 
         } catch (error) {
             ui.showToast('Erro ao atualizar o status.', 'danger');
         }
     };
 
-    // --- CORREÇÃO 2: NAVEGAÇÃO INTELIGENTE PÓS-LIMPEZA ---
+    // --- CORREÇÃO PRINCIPAL: Animação ao deletar ---
     const handleDeleteTask = async () => {
         if (!state.taskToDelete) return;
+        
         try {
             if (state.taskToDelete === 'completed') {
+                // Deletar todas as concluídas
                 await api.deleteCompletedTasks();
+
+                // Dispara a animação para todos os itens no container de concluídas
+                ui.clearAllTasksFromUI('completed-tasks-container');
+
+                // Atualiza o estado local APÓS a chamada da API
                 state.tasks = state.tasks.filter(task => task.status !== 'concluída');
+                
                 ui.showToast('Tarefas concluídas foram limpas!', 'success');
                 ui.showConfetti();
-                
-                // Leva o usuário de volta para a tela principal, já que a atual está vazia
-                ui.switchView('view-main');
+
             } else {
+                // Deletar uma tarefa individual
                 const idToDelete = state.taskToDelete;
                 await api.deleteTask(idToDelete);
+
+                // Dispara a animação de remoção para o item específico
+                ui.removeTaskFromUI(idToDelete);
+
+                // Atualiza o estado local APÓS a chamada da API
                 state.tasks = state.tasks.filter(task => task.id !== idToDelete);
+
                 ui.showToast('Tarefa excluída.', 'info');
             }
+
+            // Atualiza o placar (Dashboard) com os novos números
             ui.updateDashboard(state.tasks);
-            ui.updateAllViews(state.tasks);
+            
+            // IMPORTANTE: NÃO chamamos mais ui.updateAllViews() aqui,
+            // pois as novas funções já cuidam de remover os itens da tela.
 
         } catch (error) {
             ui.showToast('Erro ao excluir.', 'danger');
-            await refreshData();
+            await refreshData(); // Recarrega tudo se der erro
         } finally {
             ui.hideModal();
             state.taskToDelete = null;
@@ -167,7 +185,6 @@ document.addEventListener('DOMContentLoaded', () => {
             onEditTask: handleEditTask,
         });
 
-        // O calendário já estava correto, mantivemos a configuração
         newTaskDatepicker = flatpickr("#new-task-date", {
             locale: 'pt',
             enableTime: true,
