@@ -1,5 +1,4 @@
 import * as api from './api.js';
-// CORREÇÃO 1: Importar as novas funções de animação do ui.js
 import * as ui from './ui.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -22,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const handleCreateTask = async (event) => {
-        event.preventDefault();
+        event.preventDefault(); // Já estava correto aqui
         const titleInput = document.getElementById('new-task-title');
         const descriptionInput = document.getElementById('new-task-description');
         
@@ -58,65 +57,47 @@ document.addEventListener('DOMContentLoaded', () => {
         const newStatus = task.status === 'pendente' ? 'concluída' : 'pendente';
         try {
             await api.updateTask(id, { status: newStatus });
-            task.status = newStatus; 
+            task.status = newStatus;
             
-            // Aqui a animação já funciona bem ao trocar de lista
-            ui.updateAllViews(state.tasks);
-            ui.updateDashboard(state.tasks);
+            if (newStatus === 'concluída') {
+                ui.flashTask(id);
+            }
+            
+            setTimeout(() => {
+                ui.updateAllViews(state.tasks);
+                ui.updateDashboard(state.tasks);
+            }, 500);
 
             const message = newStatus === 'concluída' ? 'Tarefa concluída! 🎉' : 'Tarefa marcada como pendente.';
             ui.showToast(message, 'success');
-            
-            if (newStatus === 'concluída') {
-                ui.showConfetti();
-            }
 
         } catch (error) {
             ui.showToast('Erro ao atualizar o status.', 'danger');
         }
     };
 
-    // --- CORREÇÃO PRINCIPAL: Animação ao deletar ---
     const handleDeleteTask = async () => {
         if (!state.taskToDelete) return;
         
         try {
             if (state.taskToDelete === 'completed') {
-                // Deletar todas as concluídas
                 await api.deleteCompletedTasks();
-
-                // Dispara a animação para todos os itens no container de concluídas
                 ui.clearAllTasksFromUI('completed-tasks-container');
-
-                // Atualiza o estado local APÓS a chamada da API
                 state.tasks = state.tasks.filter(task => task.status !== 'concluída');
-                
                 ui.showToast('Tarefas concluídas foram limpas!', 'success');
-                ui.showConfetti();
-
             } else {
-                // Deletar uma tarefa individual
                 const idToDelete = state.taskToDelete;
                 await api.deleteTask(idToDelete);
-
-                // Dispara a animação de remoção para o item específico
                 ui.removeTaskFromUI(idToDelete);
-
-                // Atualiza o estado local APÓS a chamada da API
                 state.tasks = state.tasks.filter(task => task.id !== idToDelete);
-
                 ui.showToast('Tarefa excluída.', 'info');
             }
 
-            // Atualiza o placar (Dashboard) com os novos números
             ui.updateDashboard(state.tasks);
-            
-            // IMPORTANTE: NÃO chamamos mais ui.updateAllViews() aqui,
-            // pois as novas funções já cuidam de remover os itens da tela.
 
         } catch (error) {
             ui.showToast('Erro ao excluir.', 'danger');
-            await refreshData(); // Recarrega tudo se der erro
+            await refreshData();
         } finally {
             ui.hideModal();
             state.taskToDelete = null;
@@ -194,15 +175,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         document.getElementById('task-form').addEventListener('submit', handleCreateTask);
-        document.getElementById('confirm-delete-btn').addEventListener('click', handleDeleteTask);
-        document.getElementById('cancel-delete-btn').addEventListener('click', ui.hideModal);
+        
+        // --- CORREÇÃO DO RELOAD ---
+        document.getElementById('confirm-delete-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            handleDeleteTask();
+        });
+        document.getElementById('cancel-delete-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            ui.hideModal();
+        });
+        
         document.querySelectorAll('.nav-item').forEach(item => {
             item.addEventListener('click', () => ui.switchView(`view-${item.dataset.view}`));
         });
         
         const clearBtn = document.getElementById('clear-completed-btn');
         if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
+            clearBtn.addEventListener('click', (e) => {
+                e.preventDefault();
                 state.taskToDelete = 'completed';
                 ui.showModal({ title: 'Limpar Concluídas', message: 'Tem a certeza que deseja excluir todas as tarefas concluídas?' });
             });
