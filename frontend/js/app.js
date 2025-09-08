@@ -60,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const task = state.tasks.find(t => t.id === id);
         if (!task) return;
         const newStatus = task.status === 'pendente' ? 'concluída' 'pendente';
+        const newStatus = task.status === 'pendente' ? 'concluída' : 'pendente';
         try {
             await api.updateTask(id, { status: newStatus });
             task.status = newStatus; 
