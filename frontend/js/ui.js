@@ -26,6 +26,8 @@ const formatTimeAgo = (dateString) => {
 
 const createTaskElement = (task) => {
     const taskItem = document.createElement('div');
+    // Adicionamos o data-id aqui para facilitar a seleção do elemento
+    taskItem.dataset.id = task.id; 
     taskItem.className = 'task-item';
     if (task.status === 'concluída') {
         taskItem.classList.add('completed');
@@ -83,18 +85,13 @@ const renderTaskList = (container, tasks) => {
     tasks.forEach(task => container.appendChild(createTaskElement(task)));
 };
 
-// Dentro do arquivo ui.js, substitua a função updateAllViews por esta:
 export const updateAllViews = (tasks) => {
     const allPending = tasks.filter(t => t.status === 'pendente');
     const completed = tasks.filter(t => t.status === 'concluída');
     
-    // 1. Primeiro, separamos as tarefas vencidas das pendentes.
     const overdue = allPending.filter(t => t.due_date && new Date(t.due_date) < new Date());
-
-    // 2. Agora, a lista de pendentes é composta por todas as pendentes MENOS as que já estão vencidas.
     const pending = allPending.filter(t => !overdue.some(overdueTask => overdueTask.id === t.id));
 
-    // Renderiza cada lista no seu respectivo container
     renderTaskList(document.getElementById('pending-tasks-container'), pending);
     renderTaskList(document.getElementById('completed-tasks-container'), completed);
     renderTaskList(document.getElementById('overdue-tasks-container'), overdue);
@@ -103,6 +100,49 @@ export const updateAllViews = (tasks) => {
     badge.textContent = overdue.length;
     badge.style.display = overdue.length > 0 ? 'inline-block' : 'none';
 };
+
+// --- NOVAS FUNÇÕES PARA ANIMAÇÃO ---
+
+/**
+ * Remove uma única tarefa da UI com animação.
+ * @param {number} id - O ID da tarefa a ser removida.
+ */
+export const removeTaskFromUI = (id) => {
+  const taskElement = document.querySelector(`.task-item[data-id="${id}"]`);
+  if (taskElement) {
+    taskElement.classList.add('removing');
+
+    // Espera a animação de 0.5s (500ms) terminar para remover o elemento do DOM
+    setTimeout(() => {
+      taskElement.remove();
+    }, 500); 
+  }
+};
+
+/**
+ * Limpa todas as tarefas de um container específico com animação.
+ * @param {string} containerId - O ID do container (ex: 'completed-tasks-container').
+ */
+export const clearAllTasksFromUI = (containerId) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const tasks = container.querySelectorAll('.task-item');
+    
+    if (tasks.length === 0) return;
+
+    tasks.forEach(task => {
+        task.classList.add('removing');
+    });
+
+    // Espera a animação terminar para limpar o container
+    setTimeout(() => {
+        container.innerHTML = `<div class="empty-state">Nenhuma tarefa aqui.</div>`;
+    }, 500);
+};
+
+// --- FIM DAS NOVAS FUNÇÕES ---
+
 
 export const updateDashboard = (tasks) => {
     const pendingCount = tasks.filter(t => t.status === 'pendente').length;
