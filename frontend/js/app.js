@@ -16,12 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
             ui.updateDashboard(state.tasks);
             ui.updateAllViews(state.tasks);
         } catch (error) {
-            ui.showToast('Falha ao carregar as tarefas. Verifique se o servidor backend está a correr.', 'danger');
+            console.error('Falha ao carregar as tarefas.');
         }
     };
 
     const handleCreateTask = async (event) => {
-        event.preventDefault(); // Já estava correto aqui
+        event.preventDefault();
         const titleInput = document.getElementById('new-task-title');
         const descriptionInput = document.getElementById('new-task-description');
         
@@ -43,11 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ui.updateDashboard(state.tasks);
             ui.updateAllViews(state.tasks);
             
-            ui.showToast('Tarefa criada com sucesso!', 'success');
             ui.switchView('view-pending');
 
         } catch (error) {
-            ui.showToast('Erro ao criar a tarefa.', 'danger');
+            console.error('Erro ao criar a tarefa.');
         }
     };
 
@@ -68,11 +67,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 ui.updateDashboard(state.tasks);
             }, 500);
 
-            const message = newStatus === 'concluída' ? 'Tarefa concluída! 🎉' : 'Tarefa marcada como pendente.';
-            ui.showToast(message, 'success');
-
         } catch (error) {
-            ui.showToast('Erro ao atualizar o status.', 'danger');
+            console.error('Erro ao atualizar o status.');
         }
     };
 
@@ -84,19 +80,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 await api.deleteCompletedTasks();
                 ui.clearAllTasksFromUI('completed-tasks-container');
                 state.tasks = state.tasks.filter(task => task.status !== 'concluída');
-                ui.showToast('Tarefas concluídas foram limpas!', 'success');
             } else {
                 const idToDelete = state.taskToDelete;
                 await api.deleteTask(idToDelete);
                 ui.removeTaskFromUI(idToDelete);
                 state.tasks = state.tasks.filter(task => task.id !== idToDelete);
-                ui.showToast('Tarefa excluída.', 'info');
             }
 
             ui.updateDashboard(state.tasks);
 
         } catch (error) {
-            ui.showToast('Erro ao excluir.', 'danger');
+            console.error('Erro ao excluir.');
             await refreshData();
         } finally {
             ui.hideModal();
@@ -119,10 +113,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (newValue !== originalValue) {
                         try {
                            await api.updateTask(id, { due_date: newValue });
-                           ui.showToast('Data da tarefa atualizada!', 'warning');
                            await refreshData();
                         } catch(error) {
-                           ui.showToast('Erro ao salvar a data.', 'danger');
+                           console.error('Erro ao salvar a data.');
                         }
                     }
                 }
@@ -141,9 +134,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (newValue !== originalValue) {
                 try {
                     await api.updateTask(id, { [field]: newValue });
-                    ui.showToast('Tarefa atualizada com sucesso!', 'warning');
                 } catch(error) {
-                    ui.showToast('Erro ao salvar alteração.', 'danger');
+                    console.error('Erro ao salvar alteração.');
                 }
             }
             await refreshData();
@@ -152,7 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('blur', save);
         input.addEventListener('keydown', e => {
             if (e.key === 'Enter' && field !== 'description') input.blur();
-            if (e.key === 'Escape') refreshData();
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                refreshData();
+            }
         });
     };
 
@@ -176,24 +171,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('task-form').addEventListener('submit', handleCreateTask);
         
-        // --- CORREÇÃO DO RELOAD ---
-        document.getElementById('confirm-delete-btn').addEventListener('click', (e) => {
-            e.preventDefault();
+        document.getElementById('confirm-delete-btn').addEventListener('click', (event) => {
+            event.preventDefault();
             handleDeleteTask();
         });
-        document.getElementById('cancel-delete-btn').addEventListener('click', (e) => {
-            e.preventDefault();
+
+        document.getElementById('cancel-delete-btn').addEventListener('click', (event) => {
+            event.preventDefault();
             ui.hideModal();
         });
         
         document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', () => ui.switchView(`view-${item.dataset.view}`));
+            item.addEventListener('click', (event) => {
+                event.preventDefault();
+                ui.switchView(`view-${item.dataset.view}`);
+            });
         });
         
         const clearBtn = document.getElementById('clear-completed-btn');
         if (clearBtn) {
-            clearBtn.addEventListener('click', (e) => {
-                e.preventDefault();
+            clearBtn.addEventListener('click', (event) => {
+                event.preventDefault();
                 state.taskToDelete = 'completed';
                 ui.showModal({ title: 'Limpar Concluídas', message: 'Tem a certeza que deseja excluir todas as tarefas concluídas?' });
             });
